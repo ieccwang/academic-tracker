@@ -1,1564 +1,583 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學術投稿追蹤系統 | Academic Submission Tracker</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0a0f1a;
-            --bg-secondary: #111827;
-            --bg-card: #1a2234;
-            --bg-card-hover: #243049;
-            --accent-primary: #3b82f6;
-            --accent-secondary: #8b5cf6;
-            --accent-success: #10b981;
-            --accent-warning: #f59e0b;
-            --accent-danger: #ef4444;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: #2d3a52;
-            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            --gradient-2: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
-            --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.15);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Noto Sans TC', -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        /* Animated Background */
-        .bg-pattern {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .app-container {
-            position: relative;
-            z-index: 1;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            padding: 40px 20px;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-            letter-spacing: -0.5px;
-        }
-
-        .header p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        /* Login Screen */
-        .login-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 80vh;
-        }
-
-        .login-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 50px;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: var(--shadow-glow);
-        }
-
-        .login-card h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 1.5rem;
-        }
-
-        /* Navigation Tabs */
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            background: var(--bg-secondary);
-            padding: 8px;
-            border-radius: 16px;
-            flex-wrap: wrap;
-        }
-
-        .nav-tab {
-            flex: 1;
-            min-width: 150px;
-            padding: 14px 24px;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-
-        .nav-tab:hover {
-            color: var(--text-primary);
-            background: var(--bg-card);
-        }
-
-        .nav-tab.active {
-            background: var(--gradient-1);
-            color: white;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
-
-        /* Cards */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            border-color: var(--accent-primary);
-            box-shadow: var(--shadow-glow);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .card-subtitle {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-
-        /* Form Elements */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-family: inherit;
-            transition: all 0.2s ease;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-
-        .form-textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: var(--gradient-1);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-secondary {
-            background: var(--bg-card-hover);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--accent-primary);
-        }
-
-        .btn-success {
-            background: var(--accent-success);
-            color: white;
-        }
-
-        .btn-danger {
-            background: transparent;
-            color: var(--accent-danger);
-            border: 1px solid var(--accent-danger);
-        }
-
-        .btn-danger:hover {
-            background: var(--accent-danger);
-            color: white;
-        }
-
-        .btn-sm {
-            padding: 8px 16px;
-            font-size: 0.85rem;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-submitted { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-        .status-under-review { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-        .status-revision { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
-        .status-accepted { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-        .status-rejected { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-        .status-planning { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
-
-        /* Submission History Timeline */
-        .timeline {
-            position: relative;
-            padding-left: 30px;
-            margin-top: 20px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 8px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: var(--border-color);
-        }
-
-        .timeline-item {
-            position: relative;
-            padding: 16px 20px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -26px;
-            top: 24px;
-            width: 12px;
-            height: 12px;
-            background: var(--accent-primary);
-            border-radius: 50%;
-            border: 3px solid var(--bg-primary);
-        }
-
-        .timeline-item.accepted::before { background: var(--accent-success); }
-        .timeline-item.rejected::before { background: var(--accent-danger); }
-
-        .timeline-date {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .timeline-journal {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 8px 0;
-        }
-
-        /* Action Bar */
-        .action-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-
-        .modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 30px;
-            width: 100%;
-            max-width: 700px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .modal-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 5px;
-            line-height: 1;
-        }
-
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
-        }
-
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        .empty-state h3 {
-            color: var(--text-primary);
-            margin-bottom: 10px;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .nav-tab {
-                min-width: auto;
-                padding: 12px 16px;
-                font-size: 0.85rem;
-            }
-            
-            .modal {
-                padding: 20px;
-            }
-            
-            .card {
-                padding: 16px;
-            }
-        }
-
-        /* Hide class */
-        .hidden {
-            display: none !important;
-        }
-
-        /* Author Tags */
-        .author-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .author-tag {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .author-tag .remove {
-            cursor: pointer;
-            color: var(--accent-danger);
-            font-weight: bold;
-        }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .toolbar-title {
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-right: auto;
-        }
-
-        /* Password Toggle */
-        .password-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .toggle-switch input {
-            display: none;
-        }
-
-        .toggle-slider {
-            width: 50px;
-            height: 26px;
-            background: var(--bg-secondary);
-            border-radius: 13px;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .toggle-slider::before {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: var(--text-secondary);
-            border-radius: 50%;
-            top: 3px;
-            left: 3px;
-            transition: all 0.3s ease;
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-            background: var(--accent-primary);
-        }
-
-        .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(24px);
-            background: white;
-        }
-
-        /* Search Input */
-        .search-container {
-            position: relative;
-            flex: 1;
-            min-width: 200px;
-            max-width: 400px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 10px 16px 10px 40px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 0.95rem;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        /* Notification */
-        .notification {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 16px 24px;
-            background: var(--bg-card);
-            border: 1px solid var(--accent-success);
-            border-radius: 12px;
-            color: var(--text-primary);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            z-index: 2000;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-    </style>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.3">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Courier; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Courier; -webkit-text-stroke: #000000; min-height: 16.0px}
+    span.s1 {font-kerning: none}
+  </style>
 </head>
 <body>
-    <div class="bg-pattern"></div>
-    
-    <div class="app-container" id="app">
-        <!-- Content will be rendered by JavaScript -->
-    </div>
-
-    <script>
-        // ==================== Data Management ====================
-        const Storage = {
-            KEYS: {
-                PAPERS: 'academic_tracker_papers',
-                CONFERENCES: 'academic_tracker_conferences',
-                SETTINGS: 'academic_tracker_settings'
-            },
-            
-            get(key) {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : null;
-            },
-            
-            set(key, value) {
-                localStorage.setItem(key, JSON.stringify(value));
-            },
-            
-            getPapers() {
-                return this.get(this.KEYS.PAPERS) || [];
-            },
-            
-            savePapers(papers) {
-                this.set(this.KEYS.PAPERS, papers);
-            },
-            
-            getConferences() {
-                return this.get(this.KEYS.CONFERENCES) || [];
-            },
-            
-            saveConferences(conferences) {
-                this.set(this.KEYS.CONFERENCES, conferences);
-            },
-            
-            getSettings() {
-                return this.get(this.KEYS.SETTINGS) || {
-                    passwordEnabled: false,
-                    password: '',
-                    isLoggedIn: false
-                };
-            },
-            
-            saveSettings(settings) {
-                this.set(this.KEYS.SETTINGS, settings);
-            }
-        };
-
-        // ==================== App State ====================
-        const AppState = {
-            currentTab: 'papers',
-            papers: Storage.getPapers(),
-            conferences: Storage.getConferences(),
-            settings: Storage.getSettings(),
-            showModal: null,
-            editingItem: null,
-            searchQuery: '',
-            notification: null
-        };
-
-        // ==================== Utility Functions ====================
-        function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2);
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('zh-TW', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-        }
-
-        function showNotification(message) {
-            AppState.notification = message;
-            render();
-            setTimeout(() => {
-                AppState.notification = null;
-                render();
-            }, 3000);
-        }
-
-        // ==================== Export Functions ====================
-        function exportToExcel() {
-            const wb = XLSX.utils.book_new();
-            
-            // Papers Sheet
-            const papersData = [];
-            AppState.papers.forEach(paper => {
-                paper.submissions.forEach((sub, idx) => {
-                    papersData.push({
-                        '文章標題': paper.title,
-                        '作者（電子郵件）': paper.authors.join('; '),
-                        '投稿次序': idx + 1,
-                        '期刊名稱': sub.journal,
-                        '投稿日期': sub.submitDate,
-                        '狀態': sub.status,
-                        '備註': sub.notes
-                    });
-                });
-            });
-            
-            if (papersData.length > 0) {
-                const ws1 = XLSX.utils.json_to_sheet(papersData);
-                XLSX.utils.book_append_sheet(wb, ws1, '文章投稿紀錄');
-            }
-            
-            // Conferences Sheet
-            const confData = AppState.conferences.map(conf => ({
-                '研討會名稱': conf.name,
-                '地點': conf.location,
-                '研討會日期': conf.date,
-                '截止投稿日期': conf.deadline,
-                '投稿文章': conf.paperTitle,
-                '文章狀態': conf.paperStatus,
-                '預計發表人': conf.presenter,
-                '備註': conf.notes
-            }));
-            
-            if (confData.length > 0) {
-                const ws2 = XLSX.utils.json_to_sheet(confData);
-                XLSX.utils.book_append_sheet(wb, ws2, '研討會規劃');
-            }
-            
-            XLSX.writeFile(wb, `學術投稿追蹤_${new Date().toISOString().split('T')[0]}.xlsx`);
-            showNotification('✓ Excel 檔案已匯出');
-        }
-
-        function exportToJSON() {
-            const data = {
-                papers: AppState.papers,
-                conferences: AppState.conferences,
-                exportDate: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `學術投稿追蹤_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification('✓ JSON 檔案已匯出');
-        }
-
-        function importFromJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.papers) {
-                        AppState.papers = data.papers;
-                        Storage.savePapers(AppState.papers);
-                    }
-                    if (data.conferences) {
-                        AppState.conferences = data.conferences;
-                        Storage.saveConferences(AppState.conferences);
-                    }
-                    render();
-                    showNotification('✓ 資料已匯入成功');
-                } catch (err) {
-                    alert('匯入失敗：檔案格式錯誤');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // ==================== CRUD Operations ====================
-        function savePaper(paperData) {
-            if (AppState.editingItem) {
-                const index = AppState.papers.findIndex(p => p.id === AppState.editingItem.id);
-                if (index !== -1) {
-                    AppState.papers[index] = { ...AppState.editingItem, ...paperData };
-                }
-            } else {
-                AppState.papers.push({
-                    id: generateId(),
-                    ...paperData,
-                    submissions: paperData.submissions || []
-                });
-            }
-            Storage.savePapers(AppState.papers);
-            AppState.showModal = null;
-            AppState.editingItem = null;
-            render();
-            showNotification('✓ 文章已儲存');
-        }
-
-        function deletePaper(id) {
-            if (confirm('確定要刪除這篇文章嗎？')) {
-                AppState.papers = AppState.papers.filter(p => p.id !== id);
-                Storage.savePapers(AppState.papers);
-                render();
-                showNotification('✓ 文章已刪除');
-            }
-        }
-
-        function addSubmission(paperId, submissionData) {
-            const paper = AppState.papers.find(p => p.id === paperId);
-            if (paper) {
-                paper.submissions.push({
-                    id: generateId(),
-                    ...submissionData
-                });
-                Storage.savePapers(AppState.papers);
-                render();
-                showNotification('✓ 投稿紀錄已新增');
-            }
-        }
-
-        function deleteSubmission(paperId, submissionId) {
-            const paper = AppState.papers.find(p => p.id === paperId);
-            if (paper) {
-                paper.submissions = paper.submissions.filter(s => s.id !== submissionId);
-                Storage.savePapers(AppState.papers);
-                render();
-            }
-        }
-
-        function saveConference(confData) {
-            if (AppState.editingItem) {
-                const index = AppState.conferences.findIndex(c => c.id === AppState.editingItem.id);
-                if (index !== -1) {
-                    AppState.conferences[index] = { ...AppState.editingItem, ...confData };
-                }
-            } else {
-                AppState.conferences.push({
-                    id: generateId(),
-                    ...confData
-                });
-            }
-            Storage.saveConferences(AppState.conferences);
-            AppState.showModal = null;
-            AppState.editingItem = null;
-            render();
-            showNotification('✓ 研討會已儲存');
-        }
-
-        function deleteConference(id) {
-            if (confirm('確定要刪除這個研討會嗎？')) {
-                AppState.conferences = AppState.conferences.filter(c => c.id !== id);
-                Storage.saveConferences(AppState.conferences);
-                render();
-                showNotification('✓ 研討會已刪除');
-            }
-        }
-
-        // ==================== Render Functions ====================
-        function getStatusClass(status) {
-            const statusMap = {
-                '已投稿': 'submitted',
-                '審稿中': 'under-review',
-                '修改中': 'revision',
-                '已接受': 'accepted',
-                '已拒絕': 'rejected',
-                '規劃中': 'planning'
-            };
-            return statusMap[status] || 'planning';
-        }
-
-        function renderLogin() {
-            return `
-                <div class="login-screen">
-                    <div class="header">
-                        <h1>📚 學術投稿追蹤系統</h1>
-                        <p>Academic Submission Tracker</p>
-                    </div>
-                    <div class="login-card">
-                        <h2>🔐 請輸入密碼</h2>
-                        <div class="form-group">
-                            <input type="password" class="form-input" id="login-password" 
-                                   placeholder="輸入存取密碼" onkeypress="if(event.key==='Enter')handleLogin()">
-                        </div>
-                        <button class="btn btn-primary" style="width: 100%" onclick="handleLogin()">
-                            登入系統
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderStats() {
-            const totalPapers = AppState.papers.length;
-            const acceptedPapers = AppState.papers.filter(p => 
-                p.submissions.some(s => s.status === '已接受')
-            ).length;
-            const pendingPapers = AppState.papers.filter(p => 
-                p.submissions.length > 0 && 
-                !p.submissions.some(s => s.status === '已接受') &&
-                p.submissions[p.submissions.length - 1].status !== '已拒絕'
-            ).length;
-            const upcomingConfs = AppState.conferences.filter(c => 
-                new Date(c.date) > new Date()
-            ).length;
-
-            return `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value">${totalPapers}</div>
-                        <div class="stat-label">文章總數</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${acceptedPapers}</div>
-                        <div class="stat-label">已接受</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${pendingPapers}</div>
-                        <div class="stat-label">審稿中</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${upcomingConfs}</div>
-                        <div class="stat-label">即將到來的研討會</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderPapersList() {
-            const filtered = AppState.papers.filter(p => 
-                p.title.toLowerCase().includes(AppState.searchQuery.toLowerCase()) ||
-                p.authors.some(a => a.toLowerCase().includes(AppState.searchQuery.toLowerCase()))
-            );
-
-            if (filtered.length === 0) {
-                return `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📝</div>
-                        <h3>尚無文章紀錄</h3>
-                        <p>點擊「新增文章」開始追蹤您的投稿歷程</p>
-                    </div>
-                `;
-            }
-
-            return filtered.map(paper => {
-                const latestSubmission = paper.submissions[paper.submissions.length - 1];
-                const statusClass = latestSubmission ? getStatusClass(latestSubmission.status) : 'planning';
-                
-                return `
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">${paper.title}</div>
-                                <div class="card-subtitle">
-                                    ${paper.submissions.length} 次投稿紀錄
-                                </div>
-                            </div>
-                            <div class="btn-group">
-                                ${latestSubmission ? 
-                                    `<span class="status-badge status-${statusClass}">${latestSubmission.status}</span>` 
-                                    : '<span class="status-badge status-planning">尚未投稿</span>'}
-                            </div>
-                        </div>
-                        
-                        <div class="author-tags">
-                            ${paper.authors.map(author => `
-                                <span class="author-tag">✉️ ${author}</span>
-                            `).join('')}
-                        </div>
-                        
-                        ${paper.submissions.length > 0 ? `
-                            <div class="timeline">
-                                ${paper.submissions.map((sub, idx) => `
-                                    <div class="timeline-item ${getStatusClass(sub.status)}">
-                                        <div class="timeline-date">${formatDate(sub.submitDate)}</div>
-                                        <div class="timeline-journal">${sub.journal}</div>
-                                        <span class="status-badge status-${getStatusClass(sub.status)}">${sub.status}</span>
-                                        ${sub.notes ? `<p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.9rem;">${sub.notes}</p>` : ''}
-                                        <button class="btn btn-danger btn-sm" style="margin-top: 10px;" 
-                                                onclick="deleteSubmission('${paper.id}', '${sub.id}')">刪除此紀錄</button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        
-                        <div class="btn-group" style="margin-top: 20px;">
-                            <button class="btn btn-primary btn-sm" onclick="openAddSubmissionModal('${paper.id}')">
-                                + 新增投稿紀錄
-                            </button>
-                            <button class="btn btn-secondary btn-sm" onclick="editPaper('${paper.id}')">
-                                編輯文章
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deletePaper('${paper.id}')">
-                                刪除
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderConferencesList() {
-            const filtered = AppState.conferences.filter(c => 
-                c.name.toLowerCase().includes(AppState.searchQuery.toLowerCase()) ||
-                (c.paperTitle && c.paperTitle.toLowerCase().includes(AppState.searchQuery.toLowerCase()))
-            );
-
-            if (filtered.length === 0) {
-                return `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🎤</div>
-                        <h3>尚無研討會紀錄</h3>
-                        <p>點擊「新增研討會」開始規劃您的學術活動</p>
-                    </div>
-                `;
-            }
-
-            return filtered.map(conf => {
-                const isUpcoming = new Date(conf.date) > new Date();
-                const deadlinePassed = conf.deadline && new Date(conf.deadline) < new Date();
-                
-                return `
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">${conf.name}</div>
-                                <div class="card-subtitle">📍 ${conf.location || '地點未定'}</div>
-                            </div>
-                            <span class="status-badge status-${getStatusClass(conf.paperStatus || '規劃中')}">
-                                ${conf.paperStatus || '規劃中'}
-                            </span>
-                        </div>
-                        
-                        <div class="form-row" style="margin-bottom: 15px;">
-                            <div>
-                                <span style="color: var(--text-muted);">📅 研討會日期</span><br>
-                                <strong>${formatDate(conf.date)}</strong>
-                                ${isUpcoming ? '<span style="color: var(--accent-success); margin-left: 8px;">即將到來</span>' : ''}
-                            </div>
-                            <div>
-                                <span style="color: var(--text-muted);">⏰ 截止投稿</span><br>
-                                <strong style="${deadlinePassed ? 'color: var(--accent-danger)' : ''}">${formatDate(conf.deadline)}</strong>
-                                ${deadlinePassed ? '<span style="color: var(--accent-danger); margin-left: 8px;">已截止</span>' : ''}
-                            </div>
-                            <div>
-                                <span style="color: var(--text-muted);">🎤 發表人</span><br>
-                                <strong>${conf.presenter || '未指定'}</strong>
-                            </div>
-                        </div>
-                        
-                        ${conf.paperTitle ? `
-                            <div style="background: var(--bg-secondary); padding: 12px 16px; border-radius: 8px; margin-bottom: 15px;">
-                                <span style="color: var(--text-muted);">📄 投稿文章</span><br>
-                                <strong>${conf.paperTitle}</strong>
-                            </div>
-                        ` : ''}
-                        
-                        ${conf.notes ? `<p style="color: var(--text-secondary); margin-bottom: 15px;">${conf.notes}</p>` : ''}
-                        
-                        <div class="btn-group">
-                            <button class="btn btn-secondary btn-sm" onclick="editConference('${conf.id}')">
-                                編輯
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteConference('${conf.id}')">
-                                刪除
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderSettings() {
-            const settings = AppState.settings;
-            
-            return `
-                <div class="card">
-                    <div class="card-title" style="margin-bottom: 20px;">⚙️ 系統設定</div>
-                    
-                    <div class="password-section">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="password-toggle" 
-                                   ${settings.passwordEnabled ? 'checked' : ''} 
-                                   onchange="togglePasswordProtection()">
-                            <span class="toggle-slider"></span>
-                            <span>啟用密碼保護</span>
-                        </label>
-                        
-                        <div id="password-settings" class="${settings.passwordEnabled ? '' : 'hidden'}" style="margin-top: 20px;">
-                            <div class="form-group">
-                                <label class="form-label">設定存取密碼</label>
-                                <input type="password" class="form-input" id="settings-password" 
-                                       value="${settings.password}" placeholder="輸入新密碼">
-                            </div>
-                            <button class="btn btn-primary" onclick="savePassword()">儲存密碼</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-title" style="margin-bottom: 20px;">💾 資料管理</div>
-                    
-                    <div class="btn-group">
-                        <button class="btn btn-success" onclick="exportToExcel()">
-                            📊 匯出 Excel
-                        </button>
-                        <button class="btn btn-secondary" onclick="exportToJSON()">
-                            📁 匯出 JSON（備份用）
-                        </button>
-                        <label class="btn btn-secondary" style="cursor: pointer;">
-                            📥 匯入 JSON
-                            <input type="file" accept=".json" onchange="importFromJSON(event)" style="display: none;">
-                        </label>
-                    </div>
-                    
-                    <p style="color: var(--text-muted); margin-top: 15px; font-size: 0.9rem;">
-                        💡 提示：JSON 檔案可用於備份資料或與共同作者分享
-                    </p>
-                </div>
-                
-                <div class="card">
-                    <div class="card-title" style="margin-bottom: 20px;">🗑️ 清除資料</div>
-                    <button class="btn btn-danger" onclick="clearAllData()">
-                        清除所有資料
-                    </button>
-                    <p style="color: var(--text-muted); margin-top: 10px; font-size: 0.9rem;">
-                        ⚠️ 此操作無法復原，建議先匯出備份
-                    </p>
-                </div>
-            `;
-        }
-
-        function renderPaperModal() {
-            const paper = AppState.editingItem || { title: '', authors: [], submissions: [] };
-            const isEdit = !!AppState.editingItem;
-            
-            return `
-                <div class="modal-overlay" onclick="closeModal(event)">
-                    <div class="modal" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3 class="modal-title">${isEdit ? '編輯文章' : '新增文章'}</h3>
-                            <button class="modal-close" onclick="closeModal()">&times;</button>
-                        </div>
-                        
-                        <form onsubmit="handlePaperSubmit(event)">
-                            <div class="form-group">
-                                <label class="form-label">文章標題 *</label>
-                                <input type="text" class="form-input" id="paper-title" 
-                                       value="${paper.title}" required placeholder="輸入文章標題">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">作者電子郵件（以逗號或換行分隔）</label>
-                                <textarea class="form-textarea" id="paper-authors" 
-                                          placeholder="author1@example.com, author2@example.com">${paper.authors.join('\n')}</textarea>
-                            </div>
-                            
-                            <div class="btn-group" style="justify-content: flex-end;">
-                                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-                                <button type="submit" class="btn btn-primary">儲存文章</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderSubmissionModal() {
-            return `
-                <div class="modal-overlay" onclick="closeModal(event)">
-                    <div class="modal" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3 class="modal-title">新增投稿紀錄</h3>
-                            <button class="modal-close" onclick="closeModal()">&times;</button>
-                        </div>
-                        
-                        <form onsubmit="handleSubmissionSubmit(event)">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">期刊名稱 *</label>
-                                    <input type="text" class="form-input" id="sub-journal" required 
-                                           placeholder="例如：Nature, Science">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">投稿日期 *</label>
-                                    <input type="date" class="form-input" id="sub-date" required>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">狀態</label>
-                                <select class="form-select" id="sub-status">
-                                    <option value="已投稿">已投稿</option>
-                                    <option value="審稿中">審稿中</option>
-                                    <option value="修改中">修改中（Minor/Major Revision）</option>
-                                    <option value="已接受">已接受</option>
-                                    <option value="已拒絕">已拒絕</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">備註</label>
-                                <textarea class="form-textarea" id="sub-notes" 
-                                          placeholder="審稿意見、修改事項等..."></textarea>
-                            </div>
-                            
-                            <div class="btn-group" style="justify-content: flex-end;">
-                                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-                                <button type="submit" class="btn btn-primary">儲存紀錄</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderConferenceModal() {
-            const conf = AppState.editingItem || {};
-            const isEdit = !!AppState.editingItem;
-            
-            return `
-                <div class="modal-overlay" onclick="closeModal(event)">
-                    <div class="modal" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3 class="modal-title">${isEdit ? '編輯研討會' : '新增研討會'}</h3>
-                            <button class="modal-close" onclick="closeModal()">&times;</button>
-                        </div>
-                        
-                        <form onsubmit="handleConferenceSubmit(event)">
-                            <div class="form-group">
-                                <label class="form-label">研討會名稱 *</label>
-                                <input type="text" class="form-input" id="conf-name" 
-                                       value="${conf.name || ''}" required placeholder="例如：IEEE ICRA 2024">
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">地點</label>
-                                    <input type="text" class="form-input" id="conf-location" 
-                                           value="${conf.location || ''}" placeholder="例如：Tokyo, Japan">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">研討會日期</label>
-                                    <input type="date" class="form-input" id="conf-date" 
-                                           value="${conf.date || ''}">
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">截止投稿日期</label>
-                                    <input type="date" class="form-input" id="conf-deadline" 
-                                           value="${conf.deadline || ''}">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">預計發表人</label>
-                                    <input type="text" class="form-input" id="conf-presenter" 
-                                           value="${conf.presenter || ''}" placeholder="發表人姓名">
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">投稿文章</label>
-                                    <input type="text" class="form-input" id="conf-paper" 
-                                           value="${conf.paperTitle || ''}" placeholder="文章標題">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">文章狀態</label>
-                                    <select class="form-select" id="conf-status">
-                                        <option value="規劃中" ${conf.paperStatus === '規劃中' ? 'selected' : ''}>規劃中</option>
-                                        <option value="已投稿" ${conf.paperStatus === '已投稿' ? 'selected' : ''}>已投稿</option>
-                                        <option value="審稿中" ${conf.paperStatus === '審稿中' ? 'selected' : ''}>審稿中</option>
-                                        <option value="已接受" ${conf.paperStatus === '已接受' ? 'selected' : ''}>已接受</option>
-                                        <option value="已拒絕" ${conf.paperStatus === '已拒絕' ? 'selected' : ''}>已拒絕</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">備註</label>
-                                <textarea class="form-textarea" id="conf-notes" 
-                                          placeholder="其他相關資訊...">${conf.notes || ''}</textarea>
-                            </div>
-                            
-                            <div class="btn-group" style="justify-content: flex-end;">
-                                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-                                <button type="submit" class="btn btn-primary">儲存研討會</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-        }
-
-        function render() {
-            const app = document.getElementById('app');
-            const settings = AppState.settings;
-            
-            // Check if password protection is enabled and user is not logged in
-            if (settings.passwordEnabled && !settings.isLoggedIn) {
-                app.innerHTML = renderLogin();
-                return;
-            }
-            
-            let modalHTML = '';
-            if (AppState.showModal === 'paper') {
-                modalHTML = renderPaperModal();
-            } else if (AppState.showModal === 'submission') {
-                modalHTML = renderSubmissionModal();
-            } else if (AppState.showModal === 'conference') {
-                modalHTML = renderConferenceModal();
-            }
-            
-            const notificationHTML = AppState.notification ? 
-                `<div class="notification">${AppState.notification}</div>` : '';
-            
-            app.innerHTML = `
-                <div class="header">
-                    <h1>📚 學術投稿追蹤系統</h1>
-                    <p>Academic Submission Tracker</p>
-                </div>
-                
-                ${renderStats()}
-                
-                <nav class="nav-tabs">
-                    <button class="nav-tab ${AppState.currentTab === 'papers' ? 'active' : ''}" 
-                            onclick="switchTab('papers')">
-                        📝 文章投稿
-                    </button>
-                    <button class="nav-tab ${AppState.currentTab === 'conferences' ? 'active' : ''}" 
-                            onclick="switchTab('conferences')">
-                        🎤 研討會規劃
-                    </button>
-                    <button class="nav-tab ${AppState.currentTab === 'settings' ? 'active' : ''}" 
-                            onclick="switchTab('settings')">
-                        ⚙️ 設定
-                    </button>
-                </nav>
-                
-                ${AppState.currentTab !== 'settings' ? `
-                    <div class="toolbar">
-                        <span class="toolbar-title">
-                            ${AppState.currentTab === 'papers' ? '📝 文章管理' : '🎤 研討會管理'}
-                        </span>
-                        <div class="search-container">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" class="search-input" placeholder="搜尋..." 
-                                   value="${AppState.searchQuery}" 
-                                   oninput="handleSearch(event)">
-                        </div>
-                        <button class="btn btn-primary" onclick="openAddModal()">
-                            + ${AppState.currentTab === 'papers' ? '新增文章' : '新增研討會'}
-                        </button>
-                        <button class="btn btn-success" onclick="exportToExcel()">
-                            📊 匯出 Excel
-                        </button>
-                    </div>
-                ` : ''}
-                
-                <div class="content">
-                    ${AppState.currentTab === 'papers' ? renderPapersList() : ''}
-                    ${AppState.currentTab === 'conferences' ? renderConferencesList() : ''}
-                    ${AppState.currentTab === 'settings' ? renderSettings() : ''}
-                </div>
-                
-                ${modalHTML}
-                ${notificationHTML}
-            `;
-        }
-
-        // ==================== Event Handlers ====================
-        function switchTab(tab) {
-            AppState.currentTab = tab;
-            AppState.searchQuery = '';
-            render();
-        }
-
-        function handleSearch(event) {
-            AppState.searchQuery = event.target.value;
-            render();
-        }
-
-        function openAddModal() {
-            AppState.editingItem = null;
-            AppState.showModal = AppState.currentTab === 'papers' ? 'paper' : 'conference';
-            render();
-        }
-
-        function editPaper(id) {
-            AppState.editingItem = AppState.papers.find(p => p.id === id);
-            AppState.showModal = 'paper';
-            render();
-        }
-
-        function editConference(id) {
-            AppState.editingItem = AppState.conferences.find(c => c.id === id);
-            AppState.showModal = 'conference';
-            render();
-        }
-
-        let currentPaperId = null;
-        function openAddSubmissionModal(paperId) {
-            currentPaperId = paperId;
-            AppState.showModal = 'submission';
-            render();
-        }
-
-        function closeModal(event) {
-            if (!event || event.target.classList.contains('modal-overlay')) {
-                AppState.showModal = null;
-                AppState.editingItem = null;
-                render();
-            }
-        }
-
-        function handlePaperSubmit(event) {
-            event.preventDefault();
-            const title = document.getElementById('paper-title').value.trim();
-            const authorsText = document.getElementById('paper-authors').value;
-            const authors = authorsText
-                .split(/[,\n]/)
-                .map(a => a.trim())
-                .filter(a => a.length > 0);
-            
-            savePaper({
-                title,
-                authors,
-                submissions: AppState.editingItem?.submissions || []
-            });
-        }
-
-        function handleSubmissionSubmit(event) {
-            event.preventDefault();
-            const submission = {
-                journal: document.getElementById('sub-journal').value.trim(),
-                submitDate: document.getElementById('sub-date').value,
-                status: document.getElementById('sub-status').value,
-                notes: document.getElementById('sub-notes').value.trim()
-            };
-            
-            addSubmission(currentPaperId, submission);
-            AppState.showModal = null;
-            render();
-        }
-
-        function handleConferenceSubmit(event) {
-            event.preventDefault();
-            const confData = {
-                name: document.getElementById('conf-name').value.trim(),
-                location: document.getElementById('conf-location').value.trim(),
-                date: document.getElementById('conf-date').value,
-                deadline: document.getElementById('conf-deadline').value,
-                presenter: document.getElementById('conf-presenter').value.trim(),
-                paperTitle: document.getElementById('conf-paper').value.trim(),
-                paperStatus: document.getElementById('conf-status').value,
-                notes: document.getElementById('conf-notes').value.trim()
-            };
-            
-            saveConference(confData);
-        }
-
-        function handleLogin() {
-            const password = document.getElementById('login-password').value;
-            if (password === AppState.settings.password) {
-                AppState.settings.isLoggedIn = true;
-                Storage.saveSettings(AppState.settings);
-                render();
-            } else {
-                alert('密碼錯誤，請重試');
-            }
-        }
-
-        function togglePasswordProtection() {
-            const enabled = document.getElementById('password-toggle').checked;
-            AppState.settings.passwordEnabled = enabled;
-            if (!enabled) {
-                AppState.settings.isLoggedIn = true;
-            }
-            Storage.saveSettings(AppState.settings);
-            render();
-        }
-
-        function savePassword() {
-            const password = document.getElementById('settings-password').value;
-            AppState.settings.password = password;
-            Storage.saveSettings(AppState.settings);
-            showNotification('✓ 密碼已更新');
-        }
-
-        function clearAllData() {
-            if (confirm('確定要清除所有資料嗎？此操作無法復原！')) {
-                AppState.papers = [];
-                AppState.conferences = [];
-                Storage.savePapers([]);
-                Storage.saveConferences([]);
-                render();
-                showNotification('✓ 所有資料已清除');
-            }
-        }
-
-        // ==================== Initialize ====================
-        document.addEventListener('DOMContentLoaded', () => {
-            // If password is not enabled, mark as logged in
-            if (!AppState.settings.passwordEnabled) {
-                AppState.settings.isLoggedIn = true;
-            }
-            render();
-        });
-    </script>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="zh-Hant"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;title&gt;王建智教授研究團隊學術投稿管理系統&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- Tailwind CSS --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- React &amp; Babel CDN (用於直接在瀏覽器執行 JSX) --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="root"&gt;&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script type="text/babel"&gt;</span></p>
+<p class="p1"><span class="s1">// Import the functions you need from the SDKs you need</span></p>
+<p class="p1"><span class="s1">import { initializeApp } from "firebase/app";</span></p>
+<p class="p1"><span class="s1">import { getAnalytics } from "firebase/analytics";</span></p>
+<p class="p1"><span class="s1">// TODO: Add SDKs for Firebase products that you want to use</span></p>
+<p class="p1"><span class="s1">// https://firebase.google.com/docs/web/setup#available-libraries</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// Your web app's Firebase configuration</span></p>
+<p class="p1"><span class="s1">// For Firebase JS SDK v7.20.0 and later, measurementId is optional</span></p>
+<p class="p1"><span class="s1">const firebaseConfig = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>apiKey: "AIzaSyAFy0JJPAGqcg8LsE5mNx9xoG3gJaIcp6A",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>authDomain: "academic-tracker-d97a1.firebaseapp.com",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>projectId: "academic-tracker-d97a1",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>storageBucket: "academic-tracker-d97a1.firebasestorage.app",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>messagingSenderId: "993777172111",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>appId: "1:993777172111:web:22572f11762d62bc313afa",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>measurementId: "G-8H95SGV2FE"</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">// Initialize Firebase</span></p>
+<p class="p1"><span class="s1">const app = initializeApp(firebaseConfig);</span></p>
+<p class="p1"><span class="s1">const analytics = getAnalytics(app);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>window.__firebase_config = JSON.stringify({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>apiKey: "您的_API_KEY",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>authDomain: "您的_PROJECT_ID.firebaseapp.com",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>projectId: "您的_PROJECT_ID",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>storageBucket: "您的_PROJECT_ID.appspot.com",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>messagingSenderId: "您的_SENDER_ID",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>appId: "您的_APP_ID"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>window.__app_id = "academic-tracker-v1";</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 2. 接下來貼入完整的 academic_tracker.jsx 程式碼內容</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">import React, { useState, useEffect, useMemo } from 'react';</span></p>
+<p class="p1"><span class="s1">import { initializeApp } from 'firebase/app';</span></p>
+<p class="p1"><span class="s1">import {<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>getFirestore, collection, doc, onSnapshot,<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>setDoc, addDoc, updateDoc, deleteDoc, query<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1">} from 'firebase/firestore';</span></p>
+<p class="p1"><span class="s1">import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';</span></p>
+<p class="p1"><span class="s1">import {<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>FileText, Users, Calendar, MapPin,<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>Plus, History, Save, Download,<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>Trash2, Edit3, CheckCircle, XCircle, Clock, ChevronRight</span></p>
+<p class="p1"><span class="s1">} from 'lucide-react';</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// --- Firebase 配置 (由環境提供) ---</span></p>
+<p class="p1"><span class="s1">const firebaseConfig = JSON.parse(__firebase_config);</span></p>
+<p class="p1"><span class="s1">const app = initializeApp(firebaseConfig);</span></p>
+<p class="p1"><span class="s1">const auth = getAuth(app);</span></p>
+<p class="p1"><span class="s1">const db = getFirestore(app);</span></p>
+<p class="p1"><span class="s1">const appId = typeof __app_id !== 'undefined' ? __app_id : 'academic-tracker-v1';</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 載入外部 XLSX 庫用於匯出 Excel</span></p>
+<p class="p1"><span class="s1">const loadXLSX = () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>return new Promise((resolve) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (window.XLSX) return resolve(window.XLSX);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const script = document.createElement('script');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>script.onload = () =&gt; resolve(window.XLSX);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.head.appendChild(script);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>});</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const App = () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [user, setUser] = useState(null);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [activeTab, setActiveTab] = useState('journals'); // 'journals' | 'conferences'</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [journals, setJournals] = useState([]);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [conferences, setConferences] = useState([]);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [loading, setLoading] = useState(true);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// 表單狀態</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [showJournalModal, setShowJournalModal] = useState(false);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const [showConfModal, setShowConfModal] = useState(false);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// --- 初始化身份驗證 (Firestore 必須登入才能操作) ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const initAuth = async () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>try {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (typeof __initial_auth_token !== 'undefined' &amp;&amp; __initial_auth_token) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>await signInWithCustomToken(auth, __initial_auth_token);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>await signInAnonymously(auth);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>} catch (err) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>console.error("Auth error:", err);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>initAuth();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const unsubscribe = onAuthStateChanged(auth, setUser);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return () =&gt; unsubscribe();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}, []);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// --- 監聽資料庫資料 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>useEffect(() =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!user) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// 依照規則一設定路徑：/artifacts/{appId}/public/data/{collectionName}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const journalRef = collection(db, 'artifacts', appId, 'public', 'data', 'journals');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const confRef = collection(db, 'artifacts', appId, 'public', 'data', 'conferences');</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const unsubJournals = onSnapshot(journalRef, (snapshot) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const data = snapshot.docs.map(doc =&gt; ({ id: doc.id, ...doc.data() }));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setJournals(data);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setLoading(false);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}, (err) =&gt; console.error("Journal listener error:", err));</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const unsubConfs = onSnapshot(confRef, (snapshot) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const data = snapshot.docs.map(doc =&gt; ({ id: doc.id, ...doc.data() }));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setConferences(data);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}, (err) =&gt; console.error("Conf listener error:", err));</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>unsubJournals();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>unsubConfs();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}, [user]);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// --- 功能函式 ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const handleAddJournal = async (e) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>e.preventDefault();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!user) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const formData = new FormData(e.target);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const title = formData.get('title');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const emails = formData.get('emails');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const firstJournal = formData.get('journal');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const firstDate = formData.get('date');</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const newDoc = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>title,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>authorEmails: emails,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>status: 'Submitted',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>history: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>{<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>id: Date.now().toString(),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>journalName: firstJournal,<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>date: firstDate,<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>status: 'Submitted',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>note: 'Initial Submission'</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>createdAt: new Date().toISOString()</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>try {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'journals'), newDoc);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setShowJournalModal(false);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} catch (err) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>console.error("Add error:", err);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const handleAddSubmissionToHistory = async (journalId, currentHistory) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!user) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const journalName = prompt("請輸入新投稿的期刊名稱：");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!journalName) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const date = new Date().toISOString().split('T')[0];</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">    </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const newHistoryEntry = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>id: Date.now().toString(),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>journalName,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>date,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>status: 'Submitted',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>note: 'Resubmission'</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'journals', journalId);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>await updateDoc(docRef, {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>history: [...currentHistory, newHistoryEntry],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>status: 'Submitted'</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const updateSubmissionStatus = async (journalId, historyId, currentHistory, newStatus) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!user) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const updatedHistory = currentHistory.map(h =&gt;<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>h.id === historyId ? { ...h, status: newStatus } : h</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'journals', journalId);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>await updateDoc(docRef, {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>history: updatedHistory,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>status: newStatus</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const handleAddConference = async (e) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>e.preventDefault();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!user) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const formData = new FormData(e.target);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const newConf = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>name: formData.get('name'),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>location: formData.get('location'),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>date: formData.get('date'),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>deadline: formData.get('deadline'),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>paperTitle: formData.get('paperTitle'),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>presenter: formData.get('presenter'),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>status: 'Planned',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>createdAt: new Date().toISOString()</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'conferences'), newConf);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>setShowConfModal(false);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const deleteItem = async (type, id) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!user) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!confirm("確定要刪除這筆資料嗎？")) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const path = type === 'journal' ? 'journals' : 'conferences';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', path, id));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const exportToExcel = async () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const XLSX = await loadXLSX();</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">    </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const journalData = journals.flatMap(j =&gt;<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>j.history.map((h, index) =&gt; ({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"文章題目": j.title,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"所有作者 Email": j.authorEmails,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"第幾次投稿": index + 1,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"投稿期刊": h.journalName,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"投稿日期": h.date,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"最終狀態": h.status,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"備註": h.note || ""</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}))</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const confData = conferences.map(c =&gt; ({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"研討會名稱": c.name,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"地點": c.location,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"召開日期": c.date,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"投稿截止日": c.deadline,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"投稿文章": c.paperTitle,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"預計發表人": c.presenter,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"狀態": c.status</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}));</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const wb = XLSX.utils.book_new();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const ws1 = XLSX.utils.json_to_sheet(journalData);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const ws2 = XLSX.utils.json_to_sheet(confData);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>XLSX.utils.book_append_sheet(wb, ws1, "期刊投稿歷程");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>XLSX.utils.book_append_sheet(wb, ws2, "研討會規劃");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>XLSX.writeFile(wb, `王建智教授研究團隊學術進度_${new Date().toISOString().split('T')[0]}.xlsx`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (!user) return (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div className="flex items-center justify-center h-screen bg-slate-50"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div className="text-center animate-pulse"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;Clock className="w-12 h-12 text-blue-600 mx-auto mb-4" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;p className="text-slate-600 font-medium"&gt;系統同步中，請稍候...&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>return (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div className="min-h-screen bg-slate-50 text-slate-900 font-sans"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{/* 導覽列 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;nav className="bg-white border-b sticky top-0 z-10 shadow-sm"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div className="flex justify-between h-16 items-center"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="flex items-center gap-2"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div className="bg-blue-700 p-2 rounded-lg"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;FileText className="text-white w-6 h-6" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;h1 className="font-bold text-xl tracking-tight text-slate-800"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>王建智教授研究團隊學術投稿管理系統</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>{/* UID 顯示已被移除 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="flex items-center gap-2"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;button<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>onClick={exportToExcel}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm text-sm font-medium"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;Download size={16} /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;span className="hidden sm:inline"&gt;匯出報表&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">        </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>{/* 分頁標籤 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div className="max-w-7xl mx-auto px-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div className="flex gap-8 h-12"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;button<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>onClick={() =&gt; setActiveTab('journals')}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>className={`flex items-center gap-2 border-b-2 px-2 transition-all text-sm ${activeTab === 'journals' ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700 font-medium'}`}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;History size={16} /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>期刊投稿歷程</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;button<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>onClick={() =&gt; setActiveTab('conferences')}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>className={`flex items-center gap-2 border-b-2 px-2 transition-all text-sm ${activeTab === 'conferences' ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700 font-medium'}`}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;Calendar size={16} /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>研討會規劃</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/nav&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8"&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">        </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>{/* 期刊列表 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>{activeTab === 'journals' &amp;&amp; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div className="space-y-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="flex justify-between items-center"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;h2 className="text-2xl font-bold text-slate-800"&gt;期刊文章紀錄&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;p className="text-slate-500 text-sm"&gt;完整追蹤文章投稿進度&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;button<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>onClick={() =&gt; setShowJournalModal(true)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg transition-all hover:-translate-y-0.5"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;Plus size={20} /&gt; 新增投稿文章</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="grid gap-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>{journals.length === 0 ? (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;p className="text-slate-400 font-medium"&gt;目前尚無研究文章紀錄&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>) : (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>journals.map(paper =&gt; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;div key={paper.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div className="p-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;div className="flex justify-between items-start mb-5"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div className="flex-1"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;h3 className="text-xl font-bold mb-2 text-slate-800 leading-snug"&gt;{paper.title}&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;div className="text-sm text-slate-500"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;span className="bg-slate-100 px-2 py-1 rounded-md"&gt;作者群: {paper.authorEmails}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div className="flex gap-1 ml-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;button<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>onClick={() =&gt; handleAddSubmissionToHistory(paper.id, paper.history)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;Plus size={14}/&gt; 紀錄轉投</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;button onClick={() =&gt; deleteItem('journal', paper.id)} className="text-slate-300 hover:text-red-500 p-1.5 transition-colors"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;Trash2 size={18}/&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;div className="bg-slate-50/80 rounded-xl p-5 border border-slate-100"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div className="space-y-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>{paper.history.map((record, idx) =&gt; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div key={record.id} className="relative pl-7 border-l-2 border-blue-200 last:border-transparent pb-1"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                              </span>&lt;div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-4 border-blue-500"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                              </span>&lt;div className="flex flex-wrap items-start justify-between gap-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;div className="font-bold text-slate-800"&gt;{record.journalName}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;div className="flex items-center gap-3 text-xs text-slate-400 mt-1"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                    </span>&lt;span className="flex items-center gap-1"&gt;&lt;Calendar size={12}/&gt; {record.date}&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;select<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>value={record.status}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>onChange={(e) =&gt; updateSubmissionStatus(paper.id, record.id, paper.history, e.target.value)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>className={`text-xs font-bold px-4 py-1.5 rounded-full border-none shadow-sm cursor-pointer ${</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                    </span>record.status === 'Accepted' ? 'bg-green-600 text-white' :</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                    </span>record.status === 'Rejected' ? 'bg-rose-600 text-white' :</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                    </span>record.status === 'Revision' ? 'bg-amber-500 text-white' :</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                    </span>'bg-slate-700 text-white'</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>}`}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;option value="Submitted"&gt;已投稿&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;option value="Under Review"&gt;審稿中&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;option value="Revision"&gt;修改中&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;option value="Accepted"&gt;接受&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                  </span>&lt;option value="Rejected"&gt;拒絕&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;/select&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>))}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>))</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>)}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>{/* 研討會列表 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>{activeTab === 'conferences' &amp;&amp; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div className="space-y-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="flex justify-between items-center"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;h2 className="text-2xl font-bold text-slate-800"&gt;研討會規劃&lt;/h2&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;button<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>onClick={() =&gt; setShowConfModal(true)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;Plus size={20} /&gt; 新增研討會</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>{conferences.length === 0 ? (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div className="col-span-full bg-white rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;p className="text-slate-400 font-medium"&gt;尚無研討會規劃&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>) : (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>conferences.map(conf =&gt; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;div key={conf.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between hover:shadow-md transition-all"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;div className="flex justify-between items-start mb-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;h3 className="font-bold text-lg text-slate-800 pr-2"&gt;{conf.name}&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;button onClick={() =&gt; deleteItem('conf', conf.id)} className="text-slate-300 hover:text-red-500"&gt;&lt;Trash2 size={16}/&gt;&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;div className="space-y-3 mb-6 text-sm text-slate-600"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div className="flex items-center gap-2"&gt;&lt;MapPin size={14}/&gt; {conf.location}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div className="flex items-center gap-2"&gt;&lt;Calendar size={14}/&gt; {conf.date}&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div className="px-3 py-2 bg-rose-50 text-rose-700 rounded-lg font-bold flex items-center gap-2"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>&lt;Clock size={14}/&gt; 投稿截止: {conf.deadline}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;div className="border-t border-slate-100 pt-4 mt-2"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;p className="text-xs text-slate-400 font-bold mb-1"&gt;投稿文章&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;p className="text-sm font-semibold text-slate-700 mb-3"&gt;{conf.paperTitle || "未指定"}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;p className="text-xs text-slate-400 font-bold mb-1"&gt;發表人&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;p className="text-sm font-semibold text-slate-700"&gt;{conf.presenter || "未指定"}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div className="mt-6 pt-4 border-t border-slate-50"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;select<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>value={conf.status}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>onChange={async (e) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>if (!user) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'conferences', conf.id);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>await updateDoc(docRef, { status: e.target.value });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>}}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>className={`w-full text-xs font-bold p-2.5 rounded-xl border-none ${</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>conf.status === 'Accepted' ? 'bg-green-50 text-green-700' :</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>conf.status === 'Rejected' ? 'bg-rose-50 text-rose-700' :</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                          </span>'bg-slate-100 text-slate-700'</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>}`}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;option value="Planned"&gt;計畫中&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;option value="Submitted"&gt;已投稿&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;option value="Accepted"&gt;已錄取&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;option value="Rejected"&gt;未錄取&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;option value="Completed"&gt;已發表&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                      </span>&lt;/select&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>))</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/main&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{/* 期刊彈窗 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{showJournalModal &amp;&amp; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="p-8 border-b bg-slate-50/50"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;h3 className="text-xl font-bold text-slate-800"&gt;新增文章投稿紀錄&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;form onSubmit={handleAddJournal} className="p-8 space-y-5"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;文章題目&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;input required name="title" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;所有作者 Email&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;textarea required name="emails" rows="2" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div className="grid grid-cols-2 gap-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;初次投稿期刊&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;input required name="journal" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;投稿日期&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;input required name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div className="flex gap-3 pt-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button type="button" onClick={() =&gt; setShowJournalModal(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl"&gt;取消&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold"&gt;建立紀錄&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/form&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>)}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{/* 研討會彈窗 */}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{showConfModal &amp;&amp; (</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div className="p-8 border-b bg-slate-50/50"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;h3 className="text-xl font-bold text-slate-800"&gt;計畫新研討會&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;form onSubmit={handleAddConference} className="p-8 space-y-5"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;研討會名稱&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;input required name="name" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div className="grid grid-cols-2 gap-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;地點&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;input required name="location" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;舉辦日期&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;input required name="date" type="date" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div className="grid grid-cols-2 gap-4"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;截止日&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;input required name="deadline" type="date" className="w-full px-4 py-3 bg-rose-50 border-rose-100 rounded-xl outline-none text-rose-600 font-bold" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;發表人&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                  </span>&lt;input required name="presenter" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;label className="block text-xs font-bold text-slate-500 uppercase mb-2"&gt;文章標題&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;input required name="paperTitle" className="w-full px-4 py-3 bg-slate-50 border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div className="flex gap-3 pt-6"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button type="button" onClick={() =&gt; setShowConfModal(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl"&gt;取消&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold"&gt;確認新增&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/form&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>)}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">export default App;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// (請從系統生成的檔案中複製所有 import 之後的代碼)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
 </body>
 </html>
